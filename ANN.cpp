@@ -375,19 +375,26 @@ int getOutputAns(MATRIX output){
 }
 
 void train(int cnt,int grp,int outGap,double learn,char randomInput,int round=-1,int cntRound=0){
-    register int i,cntRight=0,cntAll=0;
+    register int i,j,cntRight=0,cntAll=0;
     double time;
     clock_t start=clock(),nowtime;
     MATRIX input,output,ans;
 
-    for(i=0;i<=cnt;++i){
+    for(i=0;i<cnt;){
         if(i%1000==0) cntRight=cntAll=0;
-        auto pr=getData(randomInput);
-        input=pr.first,ans=pr.second;
-        output=work(input);
 
-        cntRight+=(getOutputAns(output)==res[now]);
-        ++cntAll;
+        for(j=0;j<grp;++j){
+            auto pr=getData(randomInput);
+            input=pr.first,ans=pr.second;
+            output=work(input);
+
+            cntRight+=(getOutputAns(output)==res[now]);
+            ++cntAll;
+            getDelta(ans);
+            addGroupDelta();
+        }
+        i+=grp;
+        addDelta(learn/grp);
         
         if(i%outGap==0){
             ans.print();
@@ -399,20 +406,15 @@ void train(int cnt,int grp,int outGap,double learn,char randomInput,int round=-1
                 printf("round:%d\ntrain case:%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins  all time:%.3lfmins  left time:%.3lfmins\n",
                     round,
                     i,getCost(output,ans),cntRight*1.0/cntAll,
-                    time,time/(i+1)*(cnt+1),time/(i+1)*(cnt+1)-time
+                    time,time/(i+1)*(cnt+1),time/(i+1)*cnt-time
                 );
             }else{
                 printf("train case:%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",
                     i,getCost(output,ans),cntRight*1.0/cntAll,
-                    time,time/(i+1)*(cnt+1),time/(i+1)*(cnt+1)-time
+                    time,time/(i+1)*(cnt+1),time/(i+1)*cnt-time
                 );
             }
         }
-
-        getDelta(ans);
-        addGroupDelta();
-        if(i%grp==0) addDelta(learn/grp);
-        
     }
 }
 
@@ -435,19 +437,19 @@ void test(int n,int all,int outGap,char rd){
     double time;
     MATRIX input,output,ans;
     getTestPic(all);
-    for(i=0;i<=n;++i){
+    for(i=0;i<n;++i){
         auto pr=getData(rd);
         input=pr.first,ans=pr.second;
         output=work(input);
 
         cntRight+=(getOutputAns(output)==res[now]);
         ++cntAll;
-        if(i%outGap==0){
+        if((i+1)%outGap==0){
             nowtime=clock()-start;
             time=nowtime*1.0/CLOCKS_PER_SEC/60;
             printf("test case%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",
                 i,getCost(output,ans),cntRight*1.0/cntAll,
-                time,time/(i+1)*(n+1),time/(i+1)*(n+1)-time
+                time,time/(i+1)*(n+1),time/(i+1)*n-time
             );
         }
     }
@@ -466,7 +468,7 @@ int main(){
     getPic(60000);
     getNet();
 
-    train(100000,10,10,0.001,1);
+    train(10000,10,10,0.1,1);
     test(10000,10000,50,0);
 
     save();

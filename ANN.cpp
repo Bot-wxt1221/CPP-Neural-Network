@@ -98,7 +98,7 @@ struct MATRIX{
     flg=2 norm 
     
     */
-    inline void init(int _n,int _m,char flg,double a=0,double b=0){
+    inline void init(int _n,int _m,double k,char flg,double a=0,double b=0){
         n=_n,m=_m;
         register int i,j;
         std::uniform_real_distribution<double> rd1(a,b);
@@ -108,8 +108,8 @@ struct MATRIX{
         mat.resize(n);
         for(i=0;i<n;++i){
             mat[i].resize(m,0);
-            if(flg==1) for(j=0;j<m;++j) mat[i][j]=rd1(mt);
-            else if(flg==2) for(j=0;j<m;++j) mat[i][j]=rd2(mt);
+            if(flg==1) for(j=0;j<m;++j) mat[i][j]=rd1(mt)*k;
+            else if(flg==2) for(j=0;j<m;++j) mat[i][j]=rd2(mt)*k;
         }
         mat.shrink_to_fit();
     }
@@ -117,7 +117,7 @@ struct MATRIX{
     inline MATRIX operator + (const MATRIX &a) const {
         register int i,j;
         MATRIX ans;
-        ans.init(n,m,0);
+        ans.init(n,m,0,0);
         assert(n==a.n&&m==a.m);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
@@ -129,7 +129,7 @@ struct MATRIX{
     inline MATRIX operator * (const MATRIX &a) const {
         register int i,j,k;
         MATRIX ans;
-        ans.init(n,a.m,0);
+        ans.init(n,a.m,0,0);
         if(m!=a.n) assert(0);
         for(i=0;i<n;++i)
             for(k=0;k<m;++k)
@@ -142,7 +142,7 @@ struct MATRIX{
     inline MATRIX operator * (const double &a) const {
         register int i,j;
         MATRIX ans;
-        ans.init(n,m,0);
+        ans.init(n,m,0,0);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
                 ans.mat[i][j]=mat[i][j]*a;
@@ -152,7 +152,7 @@ struct MATRIX{
     inline MATRIX operator % (const MATRIX &a) const {
         register int i,j;
         MATRIX ans;
-        ans.init(n,m,0);
+        ans.init(n,m,0,0);
         assert(n==a.n&&m==a.m);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
@@ -163,7 +163,7 @@ struct MATRIX{
     inline MATRIX T() const{
         register int i,j;
         MATRIX ans;
-        ans.init(m,n,0);
+        ans.init(m,n,0,0);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
                 ans.mat[j][i]=mat[i][j];
@@ -173,7 +173,7 @@ struct MATRIX{
     inline MATRIX logis() const{
         register int i,j;
         MATRIX ans;
-        ans.init(n,m,0);
+        ans.init(n,m,0,0);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
                 ans.mat[i][j]=logistic(mat[i][j]);
@@ -183,7 +183,7 @@ struct MATRIX{
     inline MATRIX dlogis() const{
         register int i,j;
         MATRIX ans;
-        ans.init(n,m,0);
+        ans.init(n,m,0,0);
         for(i=0;i<n;++i)
             for(j=0;j<m;++j)
                 ans.mat[i][j]=dlogistic(mat[i][j]);
@@ -248,13 +248,13 @@ inline void addDelta(double w){
         W[i]=W[i]+(GRP_DW[i]*(w));
     }
 
-    GRP_DW[0].init(INPUT_SIZE,NET_SIZE,0);
+    GRP_DW[0].init(INPUT_SIZE,NET_SIZE,0,0);
     for(i=1;i<NET_DEEP;++i){
-        GRP_DB[i].init(1,NET_SIZE,0);
-        GRP_DW[i].init(NET_SIZE,NET_SIZE,0);
+        GRP_DB[i].init(1,NET_SIZE,0,0);
+        GRP_DW[i].init(NET_SIZE,NET_SIZE,0,0);
     }
-    GRP_DB[NET_DEEP].init(1,NET_SIZE,0);
-    GRP_DW[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,0);
+    GRP_DB[NET_DEEP].init(1,NET_SIZE,0,0);
+    GRP_DW[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,0,0);
     return;
 }
 
@@ -270,34 +270,38 @@ inline void addGroupDelta(){
 
 inline void init(){
     register int i;
-    register double BrdA=0,BrdB=0.1;register int flgB=1;
-    register double WrdA=0,WrdB=std::sqrt(2.0/INPUT_SIZE);register int flgW=2;
+    register double WrdK=0.5,BrdK=0;
+    register double BrdA=0,BrdB=2.0/INPUT_SIZE;register int flgB=0;
+    register double WrdA_i=0,WrdB_i=2.0/INPUT_SIZE;register int flgW_i=2;
+    register double WrdA_o=0,WrdB_o=2.0/OUTPUT_SIZE;register int flgW_o=2;
     
-    W[0].init(INPUT_SIZE,NET_SIZE,flgW,WrdA,WrdB);
+    
+    W[0].init(INPUT_SIZE,NET_SIZE,WrdK,flgW_i,WrdA_i,WrdB_i);
     DW[0]=W[0];
-    Z[0].init(1,INPUT_SIZE,0);
+    Z[0].init(1,INPUT_SIZE,BrdK,0);
     
     for(i=1;i<NET_DEEP;++i){
-        Z[i].init(1,NET_SIZE,flgB,BrdA,BrdB);
+        Z[i].init(1,NET_SIZE,BrdK,flgB,BrdA,BrdB);
         B[i]=ZL[i]=DB[i]=DZL[i]=Z[i]=Z[i];
-        W[i].init(NET_SIZE,NET_SIZE,flgW,WrdA,WrdB);
+        if(mt()&1) W[i].init(NET_SIZE,NET_SIZE,WrdK,flgW_i,WrdA_i,WrdB_i);
+        else W[i].init(NET_SIZE,NET_SIZE,WrdK,flgW_o,WrdA_o,WrdB_o);
         DW[i]=W[i];
     }
-    Z[NET_DEEP].init(1,NET_SIZE,flgB,BrdA,BrdB);
+    Z[NET_DEEP].init(1,NET_SIZE,BrdK,flgB,BrdA,BrdB);
     B[NET_DEEP]=ZL[NET_DEEP]=DB[NET_DEEP]=DZL[NET_DEEP]=Z[NET_DEEP]=Z[NET_DEEP];
-    W[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,flgW,WrdA,WrdB);
+    W[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,WrdK,flgW_o,WrdA_o,WrdB_o);
     DW[NET_DEEP]=W[NET_DEEP];
 
-    Z[NET_DEEP+1].init(1,OUTPUT_SIZE,0);
+    Z[NET_DEEP+1].init(1,OUTPUT_SIZE,0,0);
     DZ[NET_DEEP+1]=Z[NET_DEEP+1];
 
-    GRP_DW[0].init(INPUT_SIZE,NET_SIZE,0);
+    GRP_DW[0].init(INPUT_SIZE,NET_SIZE,0,0);
     for(i=1;i<NET_DEEP;++i){
-        GRP_DB[i].init(1,NET_SIZE,0);
-        GRP_DW[i].init(NET_SIZE,NET_SIZE,0);
+        GRP_DB[i].init(1,NET_SIZE,0,0);
+        GRP_DW[i].init(NET_SIZE,NET_SIZE,0,0);
     }
-    GRP_DB[NET_DEEP].init(1,NET_SIZE,0);
-    GRP_DW[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,0);
+    GRP_DB[NET_DEEP].init(1,NET_SIZE,0,0);
+    GRP_DW[NET_DEEP].init(NET_SIZE,OUTPUT_SIZE,0,0);
     return;
 }
 
@@ -345,7 +349,7 @@ void getPic(int n){
     for(i=0;i<cntPic;++i) res[i]=read();
     freopen("images", "r", stdin);
     for(i=0;i<cntPic;++i){
-        inputPic[i].init(1,INPUT_SIZE,0);
+        inputPic[i].init(1,INPUT_SIZE,0,0);
         for(j=0;j<INPUT_SIZE;++j) inputPic[i].mat[0][j]=read()*1.0/255;
     }
 }
@@ -356,8 +360,8 @@ inline std::pair<MATRIX,MATRIX> getData(char rd){
     }else ++now;
     now%=cntPic;
     MATRIX input,ans;
-    input.init(1,INPUT_SIZE,0);
-    ans.init(1,OUTPUT_SIZE,0);
+    input.init(1,INPUT_SIZE,0,0);
+    ans.init(1,OUTPUT_SIZE,0,0);
     
     input=inputPic[now];
     ans.mat[0][res[now]]=1;
@@ -370,7 +374,7 @@ int getOutputAns(MATRIX output){
     return res;
 }
 
-void train(int cnt,int grp,int outGap,double learn,char randomInput){
+void train(int cnt,int grp,int outGap,double learn,char randomInput,int round=-1,int cntRound=0){
     register int i,cntRight=0,cntAll=0;
     double time;
     clock_t start=clock(),nowtime;
@@ -391,7 +395,18 @@ void train(int cnt,int grp,int outGap,double learn,char randomInput){
             
             nowtime=clock()-start;
             time=nowtime*1.0/CLOCKS_PER_SEC/60;
-            printf("train case%d %lf %lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",i,getCost(output,ans),cntRight*1.0/cntAll,time,time/(i+1)*cnt,time/(i+1)*cnt-time);
+            if(round!=-1){
+                printf("round:%d\ntrain case:%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins  all time:%.3lfmins  left time:%.3lfmins\n",
+                    round,
+                    i,getCost(output,ans),cntRight*1.0/cntAll,
+                    time,time/(i+1)*(cnt+1),time/(i+1)*(cnt+1)-time
+                );
+            }else{
+                printf("train case:%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",
+                    i,getCost(output,ans),cntRight*1.0/cntAll,
+                    time,time/(i+1)*(cnt+1),time/(i+1)*(cnt+1)-time
+                );
+            }
         }
 
         getDelta(ans);
@@ -409,28 +424,31 @@ void getTestPic(int n){
     for(i=0;i<cntPic;++i) res[i]=read();
     freopen("test_images", "r", stdin);
     for(i=0;i<cntPic;++i){
-        inputPic[i].init(1,INPUT_SIZE,0);
+        inputPic[i].init(1,INPUT_SIZE,0,0);
         for(j=0;j<INPUT_SIZE;++j) inputPic[i].mat[0][j]=read()*1.0/255;
     }
 }
 
-void test(int n,int all,int outGap){
+void test(int n,int all,int outGap,char rd){
     register int i=0,cntRight=0,cntAll=0;
     clock_t start=clock(),nowtime;
     double time;
     MATRIX input,output,ans;
     getTestPic(all);
-    for(i=0;i<n;++i){
-        auto pr=getData(1);
+    for(i=0;i<=n;++i){
+        auto pr=getData(rd);
         input=pr.first,ans=pr.second;
         output=work(input);
 
         cntRight+=(getOutputAns(output)==res[now]);
         ++cntAll;
-        if(i%10==0){
+        if(i%outGap==0){
             nowtime=clock()-start;
             time=nowtime*1.0/CLOCKS_PER_SEC/60;
-            printf("test case%d %lf %lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",i,getCost(output,ans),cntRight*1.0/cntAll,time,time/(i+1)*n,time/(i+1)*n-time);
+            printf("test case%d\ncost:%lf\naccuracy rate:%lf\nuse time:%.3lfmins all time:%.3lfmins left time:%.3lfmins\n",
+                i,getCost(output,ans),cntRight*1.0/cntAll,
+                time,time/(i+1)*(n+1),time/(i+1)*(n+1)-time
+            );
         }
     }
     return;
@@ -447,8 +465,10 @@ int main(){
     init();
     getPic(60000);
     getNet();
-    train(60000,5,10,0.001,1);
-    test(5000,10000,50);
+
+    train(100000,10,10,0.001,1);
+    test(10000,10000,50,0);
+
     save();
 
 	#ifndef ONLINE_JUDGE

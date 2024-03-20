@@ -57,7 +57,7 @@ OUTPUT_SIZE: 输出向量长度
 NET_DEEP:    中间层深度
 NET_SIZE:    中间层向量长度
 */
-const int PIC_SIZE=28,INPUT_SIZE=784,OUTPUT_SIZE=10,NET_DEEP=8,NET_SIZE=900,MAX_PIC=1000010;
+const int PIC_SIZE=28,INPUT_SIZE=784,OUTPUT_SIZE=10,NET_DEEP=10,NET_SIZE=1000,MAX_PIC=1000010;
 std::mt19937 mt(time(0));
 
 inline double sigmoid(double x,char flg) {
@@ -268,14 +268,23 @@ inline void addGroupDelta(){
     return;
 }
 
+/*
+0.03 0.06 0.33
+0.02 0.02 xxx
+0.01 0.01 xxx
+0.05 0.05 0.22
+0.04 0.04 0.24
+0.04 0.05 0.45
+0.04 0.06 0.30
+0.04 0.07 0.33
+*/
 inline void init(){
     register int i;
     register double WrdK=1.0,BrdK=0;
     register double BrdA=0,BrdB=2.0/INPUT_SIZE;register int flgB=0;
     register double WrdA_i=0,WrdB_i=0.03;register int flgW_i=2;
     register double WrdA_o=0,WrdB_o=0.06;register int flgW_o=2;
-    
-    
+
     W[0].init(INPUT_SIZE,NET_SIZE,WrdK,flgW_i,WrdA_i,WrdB_i);
     DW[0]=W[0];
     Z[0].init(1,INPUT_SIZE,BrdK,0);
@@ -393,7 +402,7 @@ void train(int cnt,int grp,int outGap,double learn,char randomInput,int round=-1
         if(i%1000==0) cntRight=cntAll=0;
 
         for(j=0;j<grp;++j){
-            auto pr=getData(randomInput,0);
+            auto pr=getData(randomInput,1);
             input=pr.first,ans=pr.second;
             output=work(input);
 
@@ -477,7 +486,7 @@ int main(){
     getPic(60000);
     getNet();
 
-    train(10000,1,10,0.0002,1);
+    train(30000,10,10,0.001,1);
     test(10000,10000,500,0);
 
     save();
